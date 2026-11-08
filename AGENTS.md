@@ -3,8 +3,8 @@
 > Give this file to your coding agent and check that it is using these instructions. Keep the stack, commands, and ground rules current.
 
 ## 1. Project Overview
-- **Project name:** TBD: idea chosen Nov 7
-- **What this repo builds:** TBD: idea chosen Nov 7
+- **Project name:** Ghostwriter
+- **What this repo builds:** An AI agent that drafts and sends iMessage replies in your own style, so busy people stop leaving texts unanswered.
 - **Primary user & core workflow:** [See the living PRD in `docs/index.html`]
 - **Tech stack:** [e.g., Python 3.12 / FastAPI / Next.js / SQLite / OpenRouter API]
 

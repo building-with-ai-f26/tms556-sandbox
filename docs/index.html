@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>[Your Product Name] · Building with AI (Fall 2026)</title>
+  <title>Ghostwriter · Building with AI (Fall 2026)</title>
 
   <!-- Week 1: create your PostHog account only.
        Build 2: paste your project's current PostHog web snippet here,
@@ -144,8 +144,8 @@
     <!-- HERO / PRODUCT PITCH -->
     <header>
       <span class="eyebrow">NYU Stern · Building with AI · Fall 2026</span>
-      <h1>[Your Product Name]</h1>
-      <p class="tagline">[One clear sentence: Who is this for, and what painful job does it do for them?]</p>
+      <h1>Ghostwriter</h1>
+      <p class="tagline">An AI agent that drafts and sends iMessage replies in your own style, so busy people stop leaving texts unanswered.</p>
       <div class="cta-row">
         <a class="btn" href="#live-demo" onclick="window.posthog && posthog.capture('clicked_try_product')">See the Product →</a>
         <a class="btn btn-secondary" href="#prd">Read the Living PRD</a>
@@ -171,23 +171,39 @@
       <p class="meta">Updated every week as we test with real users and learn what works.</p>
 
       <h3>1. Target User & The Job to Be Done</h3>
-      <p><strong>Who is this for?</strong> [Name a specific, reachable person or role you have direct access to.]</p>
-      <p><strong>The painful "Before" workflow:</strong> [How do they do this today, and why is it slow, manual, or broken?]</p>
-      <p><strong>The "After" workflow with this product:</strong> [What does your tool do for them in one sitting?]</p>
+      <p><strong>Problem:</strong> Busy people often take 24–72+ hours to reply to texts. Slow replies hurt relationships and work, and the pile of unanswered texts adds stress and guilt that makes replying even harder.</p>
+      <p><strong>Who is this for?</strong> Carly, a friend who is a very busy working professional as a consultant and a slow responder.</p>
+      <p><strong>The painful "Before" workflow:</strong> A text arrives. Carly is busy, so it sits for 24–72 hours while more pile up. Replying starts to feel like a chore, and family, friends, and work contacts are left waiting.</p>
+      <p><strong>The "After" workflow with this product:</strong> A text arrives. Ghostwriter sorts it as Family, Friends, or Work/serious, drafts a reply in Carly's own style, and sends it within that bucket's reply window if it's confident enough. Anything it doesn't send stays unread in Messages, so unread means "this needs you."</p>
 
       <h3>2. Scope & Explicit Non-Goals</h3>
       <ul>
-        <li><strong>In Scope (Core Workflow):</strong> [The 1 main workflow this product does reliably]</li>
-        <li><strong>Out of Scope #1:</strong> [Feature you are deliberately NOT building in 6 weeks]</li>
-        <li><strong>Out of Scope #2:</strong> [Feature you are deliberately NOT building in 6 weeks]</li>
-        <li><strong>Out of Scope #3:</strong> [Feature you are deliberately NOT building in 6 weeks]</li>
+        <li><strong>In Scope (Core Workflow):</strong>
+          <ol>
+            <li>A new iMessage arrives.</li>
+            <li>The agent sorts it into Family, Friends, or Work/serious.</li>
+            <li>It drafts a reply in the user's style for that bucket.</li>
+            <li>If its confidence meets the bucket's requirement, it sends the reply within that bucket's reply window.</li>
+            <li>If not, it saves the draft for the user to approve and leaves the message unread.</li>
+          </ol>
+        </li>
+        <li><strong>Out of Scope #1:</strong> Group chats</li>
+        <li><strong>Out of Scope #2:</strong> Other messaging apps (WhatsApp, Android SMS)</li>
+        <li><strong>Out of Scope #3:</strong> Replying to scheduling messages (plans, times, dates)</li>
       </ul>
 
-      <h3>3. How It Works Under the Hood & Riskiest Assumption (Week 2+)</h3>
+      <h3>3. How I'll Know It Works</h3>
+      <ul>
+        <li>Median reply time drops from 24–72 hours to within each bucket's reply window.</li>
+        <li>Under 5% of auto-sent messages are edited, unsent, or flagged as wrong.</li>
+        <li>Under 10% of messages are put in the wrong bucket.</li>
+      </ul>
+
+      <h3>4. How It Works Under the Hood & Riskiest Assumption (Week 2+)</h3>
       <p><strong>Riskiest Assumption:</strong> [What is the #1 technical or user risk that could sink this product?]</p>
       <p><strong>Simple Architecture:</strong> [User Input] → [Your App / Server] → [AI Model / Tool] → [Output]</p>
 
-      <h3>4. Unit Economics & Analytics Snapshot (Updated Weekly)</h3>
+      <h3>5. Unit Economics & Analytics Snapshot (Updated Weekly)</h3>
       <div class="grid-2">
         <div class="stat-box">
           <div class="stat-label">Cumulative Build Spend</div>

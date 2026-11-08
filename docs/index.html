@@ -236,12 +236,14 @@
       <p class="meta">Build on at least two separate days each week outside class, including the November 3 break. Push commits and log actual progress, failures, PRD changes, costs, and hours here. All build deadlines are noon, New York time.</p>
 
       <div class="log-entry">
-        <h3>Build 1 · Intent.md & Throwaway Prototype (Due Nov 9)</h3>
+        <h3>Build 1 · Nov 5–8, 2026</h3>
         <ul>
-          <li><strong>What shipped:</strong> [What you actually built; link your local prototype screenshot or GIF above.]</li>
-          <li><strong>Things learned with AI:</strong> [What you learned from AI practice and Terminus Episodes 1 and 2.]</li>
-          <li><strong>What broke / changed in PRD:</strong> [Fill in]</li>
-          <li><strong>Cost & time this week:</strong> $[0.00] · [0] hours</li>
+          <li><strong>What works:</strong> A local prototype (prototype/index.html) that takes a pasted text message and shows its bucket (Family, Friends, or Work/serious), a draft reply, a confidence score, and whether it would auto-send or save a draft. All 6 sample messages tested, covering all three buckets and both outcomes. The Product Page is live with PRD v1.</li>
+          <li><strong>What I learned:</strong> As I build more, I'll have to work around Apple's limits on outside apps or AI agents sending iMessages on someone's behalf. I also need to decide whether people should be told when a reply was written by AI.</li>
+          <li><strong>What broke or changed:</strong> My first GitHub org invite expired and had to be resent. Installing Claude Code failed with a permissions error, which I fixed by having npm install to a folder in my home directory. The repo rename to tms556-ghostwriter didn't go through, so it stays tms556-sandbox. In the prototype, keyword sorting is crude: messages with no keywords default to Work/serious, and the drafts are canned replies, not written in the user's style.</li>
+          <li><strong>Costs:</strong> $0 extra. Claude Code ran on my existing Claude Pro subscription (about 3% of the weekly limit). No API keys or paid services. GitHub Pages hosting is free.</li>
+          <li><strong>Hours:</strong> ~9.25</li>
+          <li><strong>What's next:</strong> Replace keyword sorting and canned replies with a real AI model, install PostHog, add costs to PRD v2, and look into what Apple allows for reading and sending iMessages.</li>
         </ul>
       </div>
 

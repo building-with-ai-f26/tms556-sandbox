@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ghostwriter Prototype</title>
+<!--
+  Ghostwriter · Build 1 throwaway prototype.
+  Open this file directly in a browser. No server, no API keys, no iMessage access.
+  Everything below is simple keyword rules. A real model replaces
+  classify() and draftReply() in a later build; the send/save logic stays.
+-->
+<style>
+  :root {
+    --bg: #fafafa; --card: #fff; --text: #111827; --muted: #4b5563;
+    --border: #e5e7eb; --accent: #1d63dc;
+    --send-bg: #ecfdf5; --send-text: #065f46;
+    --draft-bg: #fffbeb; --draft-text: #92400e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text); line-height: 1.5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 680px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { margin: 0 0 4px; font-size: 28px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+  label { font-weight: 600; display: block; margin-bottom: 8px; }
+  textarea {
+    width: 100%; min-height: 90px; padding: 10px; font: inherit;
+    border: 1px solid var(--border); border-radius: 8px; resize: vertical;
+  }
+  button { font: inherit; cursor: pointer; border-radius: 8px; }
+  #analyze { margin-top: 12px; padding: 10px 18px; background: var(--accent); color: #fff; border: none; font-weight: 600; }
+  .samples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .samples span { width: 100%; font-size: 13px; color: var(--muted); }
+  .samples button { padding: 6px 10px; font-size: 13px; background: var(--bg); border: 1px solid var(--border); color: var(--text); }
+  .row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .row:last-child { border-bottom: none; }
+  .k { color: var(--muted); font-size: 14px; }
+  .v { font-weight: 600; text-align: right; }
+  .draft { background: var(--bg); border-radius: 8px; padding: 12px; margin: 8px 0 4px; font-style: italic; }
+  .decision { border-radius: 8px; padding: 12px; font-weight: 600; margin-top: 12px; }
+  .decision.send { background: var(--send-bg); color: var(--send-text); }
+  .decision.save { background: var(--draft-bg); color: var(--draft-text); }
+  .why { font-weight: 400; font-size: 14px; margin-top: 4px; }
+  .note { font-size: 13px; color: var(--muted); }
+  [hidden] { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ghostwriter</h1>
+  <p class="sub">Build 1 prototype: paste an incoming text and see what Ghostwriter would do with it.</p>
+
+  <div class="card">
+    <label for="msg">Incoming message</label>
+    <textarea id="msg" placeholder="e.g. Hi honey, it's Mom! Love you!"></textarea>
+    <button id="analyze">Analyze</button>
+    <div class="samples" id="samples"><span>Try a sample:</span></div>
+  </div>
+
+  <div class="card" id="result" hidden>
+    <div class="row"><span class="k">Bucket</span><span class="v" id="r-bucket"></span></div>
+    <div class="row"><span class="k">Confidence</span><span class="v" id="r-conf"></span></div>
+    <div class="row"><span class="k">Bucket rule</span><span class="v" id="r-rule"></span></div>
+    <div>
+      <div class="k" style="margin-top:10px">Draft reply</div>
+      <div class="draft" id="r-draft"></div>
+    </div>
+    <div class="decision" id="r-decision"></div>
+    <p class="note">Signals found: <span id="r-signals"></span></p>
+    <p class="note">Prototype only: keyword rules and canned replies, not yet trained on the user's own writing style. Nothing is actually sent.</p>
+  </div>
+</div>
+
+<script>
+// ---- Settings from the product brief ----
+const BUCKETS = {
+  "Family":       { threshold: 70, window: "1 hour" },
+  "Friends":      { threshold: 50, window: "4 hours" },
+  "Work/serious": { threshold: 90, window: "30 minutes" },
+};
+
+// ---- Step 1: keyword signals for each bucket ----
+const KEYWORDS = {
+  "Family": ["mom", "dad", "mum", "grandma", "grandpa", "sis", "bro", "aunt", "uncle",
+             "cousin", "honey", "sweetie", "sweetheart", "love you", "miss you",
+             "proud of you", "family", "home", "holiday", "thanksgiving"],
+  "Friends": ["lol", "lmao", "haha", "omg", "dude", "bestie", "girl", "drinks", "party",
+              "game", "video", "meme", "hilarious", "obsessed", "tea", "😂", "🤣", "💀"],
+  "Work/serious": ["client", "deck", "deadline", "urgent", "asap", "eod", "meeting",
+                   "report", "invoice", "contract", "manager", "boss", "project",
+                   "confirm", "approve", "approved", "review", "proposal", "hospital",
+                   "emergency", "lawyer", "bank"],
+};
+
+// Out of scope per PRD: scheduling messages are never auto-sent.
+const SCHEDULING = /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|tonight|next week|this weekend|are you free|you free|what time|reschedule|calendar|schedule)\b|\b\d{1,2}(:\d{2})?\s?(am|pm)\b|\bat \d{1,2}\b/i;
+
+function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+
+function findSignals(text) {
+  const found = {};
+  for (const [bucket, words] of Object.entries(KEYWORDS)) {
+    found[bucket] = words.filter(w =>
+      /^[\w ]+$/.test(w)
+        ? new RegExp("\\b" + escapeRegex(w) + "\\b", "i").test(text)
+        : text.includes(w)            // emoji: plain substring match
+    );
+  }
+  return found;
+}
+
+// ---- Step 2: pick a bucket and a confidence score ----
+// Confidence rises with how many signals the winning bucket has (strength)
+// and how cleanly it beats the other buckets (share).
+function classify(text) {
+  const signals = findSignals(text);
+  // Tie-break order is cautious: Work/serious first, then Family, then Friends.
+  const order = ["Work/serious", "Family", "Friends"];
+  let bucket = order[0], top = -1, total = 0;
+  for (const b of order) {
+    const n = signals[b].length;
+    total += n;
+    if (n > top) { top = n; bucket = b; }
+  }
+  if (total === 0) {
+    // No clear signals: treat as serious, the bucket with the highest bar.
+    return { bucket: "Work/serious", confidence: 20, signals };
+  }
+  const share = top / total;                      // 1.0 = only one bucket matched
+  const strength = 40 + 20 * Math.min(top, 3);    // 1 hit=60, 2=80, 3+=100
+  const confidence = Math.min(95, Math.round(share * strength));
+  return { bucket, confidence, signals };
+}
+
+// ---- Step 3: draft a reply in the bucket's tone ----
+const TEMPLATES = {
+  "Family": [
+    "Love you too! Things are busy but good here. I'll call you soon ❤️",
+    "Aw thank you, that means a lot! Miss you, talk soon ❤️",
+  ],
+  "Friends": [
+    "Haha stop 😂 I'm dying",
+    "LOL yes, I've been meaning to text you back! Tell me everything",
+  ],
+  "Work/serious": [
+    "Thanks for the note. Confirming I've got this and will follow up shortly.",
+    "Received, thank you. I'll review and get back to you today.",
+  ],
+};
+
+function draftReply(bucket, text) {
+  const options = TEMPLATES[bucket];
+  return options[text.length % options.length];   // deterministic pick
+}
+
+// ---- Step 4: send or save? ----
+function decide(bucket, confidence, text) {
+  const rule = BUCKETS[bucket];
+  if (SCHEDULING.test(text)) {
+    return { send: false, why: "Looks like a scheduling message (out of scope), so it always needs you." };
+  }
+  if (confidence >= rule.threshold) {
+    return { send: true, why: `Confidence ${confidence}% meets the ${rule.threshold}% bar for ${bucket}.` };
+  }
+  return { send: false, why: `Confidence ${confidence}% is below the ${rule.threshold}% bar for ${bucket}.` };
+}
+
+function analyze(text) {
+  const { bucket, confidence, signals } = classify(text);
+  const draft = draftReply(bucket, text);
+  const decision = decide(bucket, confidence, text);
+  return { bucket, confidence, signals, draft, decision, rule: BUCKETS[bucket] };
+}
+
+// ---- Page wiring ----
+const SAMPLES = [
+  "Hi honey, it's Mom! Dad and I are so proud of you. Love you!",
+  "haha that was hilarious",
+  "Hi, the client approved the deck. Can you confirm you got the invoice by EOD?",
+  "Can you send me the report?",
+  "Are you free for dinner Thursday at 7?",
+  "hey, call me when you can",
+];
+
+if (typeof document !== "undefined") {
+  const $ = id => document.getElementById(id);
+
+  function render() {
+    const text = $("msg").value.trim();
+    if (!text) return;
+    const r = analyze(text);
+    $("r-bucket").textContent = r.bucket;
+    $("r-conf").textContent = r.confidence + "%";
+    $("r-rule").textContent = `send if ≥ ${r.rule.threshold}%, within ${r.rule.window}`;
+    $("r-draft").textContent = r.draft;
+    const d = $("r-decision");
+    d.className = "decision " + (r.decision.send ? "send" : "save");
+    d.innerHTML = "";
+    d.append(r.decision.send
+      ? `Would auto-send within ${r.rule.window}`
+      : "Save as draft · leave message unread");
+    const why = document.createElement("div");
+    why.className = "why";
+    why.textContent = r.decision.why;
+    d.append(why);
+    const sig = Object.entries(r.signals)
+      .filter(([, w]) => w.length)
+      .map(([b, w]) => `${b}: ${w.join(", ")}`).join(" · ");
+    $("r-signals").textContent = sig || "none";
+    $("result").hidden = false;
+  }
+
+  $("analyze").addEventListener("click", render);
+  $("msg").addEventListener("keydown", e => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) render();
+  });
+  for (const s of SAMPLES) {
+    const b = document.createElement("button");
+    b.textContent = s.length > 34 ? s.slice(0, 32) + "…" : s;
+    b.title = s;
+    b.addEventListener("click", () => { $("msg").value = s; render(); });
+    $("samples").append(b);
+  }
+}
+</script>
+</body>
+</html>

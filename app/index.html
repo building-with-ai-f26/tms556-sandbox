@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ghostwriter</title>
+<!--
+  Ghostwriter · Build 2. This page runs in the BROWSER.
+  It only talks to the local backend (app/server.js) at /api/draft.
+  It never sees the API key and never calls OpenRouter directly.
+-->
+  <script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog && window.posthog.__loaded)||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}p||((p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",p.onerror=function(){p=null},(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r));var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],Object.defineProperty(u,"toString",{configurable:!0,enumerable:!0,writable:!0,value:function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e}}),Object.defineProperty(u.people,"toString",{configurable:!0,enumerable:!0,writable:!0,value:function(){return u.toString(1)+".people (stub)"}}),o="Eh Rh Ph Oh Dh qh init yd bd dd fd Sd wc md xd ad Ed Ad Rd Pd Od Fd capture getExtension gr pd gd calculateEventProperties Dd register register_once register_for_session unregister unregister_for_session zd hd jd getFeatureFlag getFeatureFlagPayload getFeatureFlagResult getAllFeatureFlags isFeatureEnabled reloadFeatureFlags updateFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys onActiveMatchingSurveysChanged renderSurvey displaySurvey cancelPendingSurvey canRenderSurvey canRenderSurveyAsync Hd identify setPersonProperties unsetPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset Ud shutdown setIdentity clearIdentity get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException addExceptionStep captureLog startExceptionAutocapture stopExceptionAutocapture loadToolbar get_property getSessionProperty qd Td createPersonProfile setInternalOrTestUser Bd Uh zh opt_in_capturing opt_out_capturing Hh has_opted_in_capturing has_opted_out_capturing get_explicit_consent_status is_capturing clear_opt_in_out_capturing $d debug kc Ds getPageViewId captureTraceFeedback captureTraceMetric rd".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+    posthog.init('phc_pRafMVhHNmMGEbAqFsdBDiJVUyJTyJoAw2fxWyPemaAj', {
+        api_host: 'https://us.i.posthog.com',
+        defaults: '2026-05-30',
+        person_profiles: 'identified_only', // or 'always' to create profiles for anonymous users as well
+    })
+  </script>
+<style>
+  :root {
+    --bg: #fafafa; --card: #fff; --text: #111827; --muted: #4b5563;
+    --border: #e5e7eb; --accent: #1d63dc; --err-bg: #fef2f2; --err-text: #991b1b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text); line-height: 1.5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 680px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { margin: 0 0 4px; font-size: 28px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+  label { font-weight: 600; display: block; margin-bottom: 8px; }
+  .hint { font-size: 13px; color: var(--muted); margin: -4px 0 10px; }
+  textarea, input {
+    width: 100%; padding: 10px; font: inherit;
+    border: 1px solid var(--border); border-radius: 8px;
+  }
+  textarea { min-height: 80px; resize: vertical; }
+  .examples input { margin-bottom: 8px; }
+  button { margin-top: 4px; padding: 10px 18px; font: inherit; font-weight: 600; cursor: pointer;
+           background: var(--accent); color: #fff; border: none; border-radius: 8px; }
+  button:disabled { opacity: 0.6; cursor: wait; }
+  .draft { background: var(--bg); border-radius: 8px; padding: 12px; white-space: pre-wrap; }
+  .error { background: var(--err-bg); color: var(--err-text); border-radius: 8px; padding: 12px; }
+  .note { font-size: 13px; color: var(--muted); margin-bottom: 0; }
+  [hidden] { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ghostwriter</h1>
+  <p class="sub">Build 2: paste Carly's text and a few of your own, and AI drafts a reply in your style. Nothing is sent.</p>
+  <p class="note">Heads up: this page uses PostHog analytics, including session recordings, so I can see how visitors use it.</p>
+
+  <div class="card">
+    <label for="incoming">Carly's text</label>
+    <textarea id="incoming" placeholder="e.g. are we still on for trivia this week??"></textarea>
+  </div>
+
+  <div class="card examples">
+    <label>Your texts (3–5 style examples)</label>
+    <p class="hint">Paste texts you've actually sent, so the draft sounds like you.</p>
+    <input class="ex" placeholder="Example 1">
+    <input class="ex" placeholder="Example 2">
+    <input class="ex" placeholder="Example 3">
+    <input class="ex" placeholder="Example 4 (optional)">
+    <input class="ex" placeholder="Example 5 (optional)">
+    <button id="go">Draft reply</button>
+  </div>
+
+  <div class="card" id="result" hidden>
+    <label>Draft reply</label>
+    <div class="draft" id="draft"></div>
+    <p class="note" id="meta"></p>
+  </div>
+  <div class="error" id="error" hidden></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+async function draft() {
+  const incoming = $("incoming").value.trim();
+  const examples = [...document.querySelectorAll(".ex")].map(i => i.value.trim()).filter(Boolean);
+  $("error").hidden = true;
+  $("result").hidden = true;
+  $("go").disabled = true;
+  $("go").textContent = "Drafting…";
+  try {
+    const res = await fetch("/api/draft", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ incoming, examples }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Something went wrong.");
+    $("draft").textContent = data.draft;
+    const u = data.usage;
+    $("meta").textContent = `Model: ${data.model}` + (u ? ` · ${u.prompt_tokens} tokens in, ${u.completion_tokens} out` : "");
+    $("result").hidden = false;
+  } catch (e) {
+    $("error").textContent = e.message === "Failed to fetch"
+      ? "Can't reach the local backend. Is node app/server.js running?"
+      : e.message;
+    $("error").hidden = false;
+  } finally {
+    $("go").disabled = false;
+    $("go").textContent = "Draft reply";
+  }
+}
+
+$("go").addEventListener("click", draft);
+</script>
+</body>
+</html>

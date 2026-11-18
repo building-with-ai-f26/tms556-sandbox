@@ -212,22 +212,25 @@
       </ul>
 
       <h3>4. How It Works Under the Hood & Riskiest Assumption (Week 2+)</h3>
-      <p><strong>Riskiest Assumption:</strong> [What is the #1 technical or user risk that could sink this product?]</p>
-      <p><strong>Simple Architecture:</strong> [User Input] → [Your App / Server] → [AI Model / Tool] → [Output]</p>
+      <p><strong>Riskiest Assumption:</strong> Ghostwriter's drafts won't sound like me, so I'd rewrite or skip them and it wouldn't save time. How Build 2 tests it: I pasted 3 made-up texts from Carly, and the AI drafted replies using 3 of my own texts as style examples. Result: 1 I'd send as-is, 1 needed a small edit (a different emoji), 1 was good. An encouraging early signal, but a small sample judged by me. Next: real texts with Carly, and checking what Apple allows for reading and sending iMessages before building on it.</p>
+      <p><strong>Simple Architecture:</strong> Browser page (app/index.html) → local backend on localhost:3000 (app/server.js, which reads the OpenRouter key from .env) → OpenRouter (Claude Haiku 5.5) → draft shown on the page. The key never reaches the browser. PostHog runs in the page.</p>
 
       <h3>5. Unit Economics & Analytics Snapshot (Updated Weekly)</h3>
       <div class="grid-2">
         <div class="stat-box">
           <div class="stat-label">Cumulative Build Spend</div>
-          <div class="stat-value">[Record actual spend]</div>
+          <div class="stat-value">$10.80</div>
+          <div class="meta">OpenRouter: charged for $10 of credits, of which under $0.01 has been used. GitHub and PostHog: free. Claude Code: Claude Pro plan.</div>
         </div>
         <div class="stat-box">
           <div class="stat-label">Est. Cost Per User Run</div>
-          <div class="stat-value">[Not yet estimated]</div>
+          <div class="stat-value">~$0.00003–$0.00009</div>
+          <div class="meta">e.g. 181 tokens in, 16 out; runs with hidden reasoning tokens cost more. Monthly at 20 drafts a day: about $0.05 (cost per run × runs per day × 30).</div>
         </div>
         <div class="stat-box">
           <div class="stat-label">User Evidence (Analytics from Build 2)</div>
-          <div class="stat-value">[Not yet measured]</div>
+          <div class="stat-value">Pageviews, clicks, replays</div>
+          <div class="meta">PostHog shows these on both the Product Page and the local app. No outside users yet.</div>
         </div>
         <div class="stat-box">
           <div class="stat-label">Sponsor Call (Week 6)</div>

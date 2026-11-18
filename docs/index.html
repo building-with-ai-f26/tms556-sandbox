@@ -262,9 +262,11 @@
       <div class="log-entry">
         <h3>Build 2 · Smallest Local Version & PostHog (Due Nov 16)</h3>
         <ul>
-          <li><strong>What shipped:</strong> [Local working slice, PostHog verified on this page and the local app, PRD v2, and local setup in AGENTS.md]</li>
-          <li><strong>What broke / changed in PRD:</strong> [Fill in]</li>
-          <li><strong>Cost & time this week:</strong> $[0.00] · [0] hours</li>
+          <li><strong>What shipped:</strong> Working slice: I paste a text from Carly plus 3 of my own texts, and Claude Haiku 5.5 (via OpenRouter) drafts a reply in my style on a localhost page. The key stays in a local backend. PostHog is verified on the Product Page and the local app (pageviews, clicks, replays), with recording notices on both. Also PRD v2, AGENTS.md, and a clickable Build 1 prototype link. Self-tests: 3 drafts, of which 1 I'd send as-is, 1 needed a small edit (emoji) and 1 was good.</li>
+          <li><strong>What I learned:</strong> Keys belong in the backend, never the browser. Each AI call is independent, with no memory between drafts. A run costs about $0.00003–$0.00009, and hidden reasoning tokens can triple it. Prepaid credits plus a per-key limit act as a hard spend cap.</li>
+          <li><strong>What broke / changed in PRD:</strong> The PostHog snippet was missing on the Product Page (fixed after Christian's email). Mac Terminal twice lost access to the Desktop folder (fixed by quitting and reopening). Claude Code switched back to auto mode after a restart (switched back to manual). I mixed up Management keys and API keys on OpenRouter. PRD: biggest risk named; the architecture now has a local backend.</li>
+          <li><strong>Cost & time this week:</strong> OpenRouter $10.80 charged for $10 of credits (under $0.01 used). Claude Code: Claude Pro plan; /cost for the Nov 18 session ≈ $1.03 estimated (earlier sessions not captured). GitHub and PostHog: free. Hours: Nov 9–16: 0 · Nov 17: ~2 hr 40 min · Nov 18: ~30 min so far · Total ≈ 3 hr 10 min.</li>
+          <li><strong>What's next:</strong> Test with real texts from Carly, check what Apple allows for iMessage, and start Build 3 (core workflow and funnel events).</li>
         </ul>
       </div>
 

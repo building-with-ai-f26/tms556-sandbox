@@ -1,0 +1,14 @@
+{
+  "name": "ghostwriter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Drafts text-message replies in your own style via OpenRouter.",
+  "main": "app/server.js",
+  "scripts": {
+    "start": "node app/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {}
+}

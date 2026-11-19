@@ -9,8 +9,14 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const PORT = 3000;
-const HOST = "127.0.0.1"; // only this computer can connect
+const PORT = Number(process.env.PORT) || 3000; // Render sets PORT
+const HOST = "0.0.0.0"; // listen on all interfaces so Render can route traffic in
+
+// Browser origins allowed to call /api/draft. Render sets RENDER_EXTERNAL_URL
+// to this service's https://<name>.onrender.com address automatically.
+const ALLOWED_ORIGINS = new Set(
+  [process.env.RENDER_EXTERNAL_URL, `http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`].filter(Boolean)
+);
 const MODEL = "anthropic/claude-haiku-5.5"; // $0.10 in / $0.50 out per million tokens
 const API_KEY = process.env.OPENROUTER_API_KEY;
 
@@ -87,6 +93,11 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "POST" && req.url === "/api/draft") {
+    const origin = req.headers.origin;
+    if (origin && !ALLOWED_ORIGINS.has(origin)) {
+      return send(res, 403, { error: "Origin not allowed." });
+    }
+
     let input;
     try { input = await readJson(req); } catch (e) { return send(res, 400, { error: e.message }); }
 

@@ -86,12 +86,13 @@ const RATE_LIMIT = 10;
 const RATE_WINDOW_MS = 60 * 1000;
 const hits = new Map(); // ip -> { start, count }
 
-// On Render the visitor IP is the first address in X-Forwarded-For;
-// locally there is no proxy, so use the socket address.
+// On Render the visitor IP is the LAST address in X-Forwarded-For: Render's
+// proxy appends it, while earlier entries can be faked by the client.
+// Locally there is no proxy, so use the socket address.
 function visitorIp(req) {
   const forwarded = req.headers["x-forwarded-for"];
   if (typeof forwarded === "string" && forwarded.trim()) {
-    return forwarded.split(",")[0].trim();
+    return forwarded.split(",").pop().trim();
   }
   return req.socket.remoteAddress || "unknown";
 }
@@ -128,34 +129,46 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "POST" && req.url === "/api/draft") {
-    if (!allowRequest(visitorIp(req))) {
-      return send(res, 429, { error: "Too many requests. Try again in a minute." });
-    }
-
-    const origin = req.headers.origin;
-    if (origin && !ALLOWED_ORIGINS.has(origin)) {
-      return send(res, 403, { error: "Origin not allowed." });
-    }
-
-    let input;
-    try { input = await readJson(req); } catch (e) { return send(res, 400, { error: e.message }); }
-
-    const incoming = typeof input.incoming === "string" ? input.incoming.trim() : "";
-    const examples = Array.isArray(input.examples)
-      ? input.examples.filter(t => typeof t === "string" && t.trim()).map(t => t.trim())
-      : [];
-    if (!incoming) return send(res, 400, { error: "Paste Carly's text first." });
-    if (examples.length < 3 || examples.length > 5) {
-      return send(res, 400, { error: "Add 3 to 5 of your own texts as style examples." });
-    }
-
+    // Catch anything unexpected so one bad request can't crash the server.
     try {
-      const result = await draftReply(incoming, examples);
-      console.log(`Drafted reply (${result.usage?.prompt_tokens ?? "?"} in / ${result.usage?.completion_tokens ?? "?"} out tokens)`);
-      return send(res, 200, result);
+      if (!allowRequest(visitorIp(req))) {
+        return send(res, 429, { error: "Too many requests. Try again in a minute." });
+      }
+
+      const origin = req.headers.origin;
+      if (origin && !ALLOWED_ORIGINS.has(origin)) {
+        return send(res, 403, { error: "Origin not allowed." });
+      }
+
+      let input;
+      try { input = await readJson(req); } catch (e) { return send(res, 400, { error: e.message }); }
+
+      // Only a plain JSON object is valid (rejects null, arrays, strings, numbers).
+      if (input === null || typeof input !== "object" || Array.isArray(input)) {
+        return send(res, 400, { error: "Request must be a JSON object." });
+      }
+
+      const incoming = typeof input.incoming === "string" ? input.incoming.trim() : "";
+      const examples = Array.isArray(input.examples)
+        ? input.examples.filter(t => typeof t === "string" && t.trim()).map(t => t.trim())
+        : [];
+      if (!incoming) return send(res, 400, { error: "Paste Carly's text first." });
+      if (examples.length < 3 || examples.length > 5) {
+        return send(res, 400, { error: "Add 3 to 5 of your own texts as style examples." });
+      }
+
+      try {
+        const result = await draftReply(incoming, examples);
+        console.log(`Drafted reply (${result.usage?.prompt_tokens ?? "?"} in / ${result.usage?.completion_tokens ?? "?"} out tokens)`);
+        return send(res, 200, result);
+      } catch (e) {
+        console.error(e.message);
+        return send(res, 502, { error: e.message });
+      }
     } catch (e) {
-      console.error(e.message);
-      return send(res, 502, { error: e.message });
+      console.error("Unexpected error in /api/draft:", e);
+      if (!res.headersSent) return send(res, 500, { error: "Something went wrong." });
+      return res.end();
     }
   }
 

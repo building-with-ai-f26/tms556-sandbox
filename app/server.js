@@ -81,6 +81,41 @@ function readJson(req) {
   });
 }
 
+// Rate limit for /api/draft: at most 10 requests per minute per visitor IP.
+const RATE_LIMIT = 10;
+const RATE_WINDOW_MS = 60 * 1000;
+const hits = new Map(); // ip -> { start, count }
+
+// On Render the visitor IP is the first address in X-Forwarded-For;
+// locally there is no proxy, so use the socket address.
+function visitorIp(req) {
+  const forwarded = req.headers["x-forwarded-for"];
+  if (typeof forwarded === "string" && forwarded.trim()) {
+    return forwarded.split(",")[0].trim();
+  }
+  return req.socket.remoteAddress || "unknown";
+}
+
+// Returns true if this request is allowed, false if the IP is over the limit.
+function allowRequest(ip) {
+  const now = Date.now();
+  const entry = hits.get(ip);
+  if (!entry || now - entry.start >= RATE_WINDOW_MS) {
+    hits.set(ip, { start: now, count: 1 });
+    return true;
+  }
+  entry.count += 1;
+  return entry.count <= RATE_LIMIT;
+}
+
+// Drop expired entries every minute so the map doesn't grow forever.
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of hits) {
+    if (now - entry.start >= RATE_WINDOW_MS) hits.delete(ip);
+  }
+}, RATE_WINDOW_MS).unref();
+
 function send(res, status, obj) {
   res.writeHead(status, { "Content-Type": "application/json" });
   res.end(JSON.stringify(obj));
@@ -93,6 +128,10 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "POST" && req.url === "/api/draft") {
+    if (!allowRequest(visitorIp(req))) {
+      return send(res, 429, { error: "Too many requests. Try again in a minute." });
+    }
+
     const origin = req.headers.origin;
     if (origin && !ALLOWED_ORIGINS.has(origin)) {
       return send(res, 403, { error: "Origin not allowed." });

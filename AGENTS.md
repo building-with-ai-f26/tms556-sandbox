@@ -24,6 +24,7 @@
 7. **Keep the Product Page current:** Keep `docs/index.html` (Product Page = living PRD + build log) up to date as the product, scope, or evidence changes.
 8. **Slice big tasks:** If a task gets big or confusing, stop and propose a smaller slice before continuing.
 9. **Weekly build log:** Each weekly build is due Monday at noon (New York time). Add a build-log entry to `docs/index.html` covering what shipped, what broke, what it cost (tokens / API / hosting), what was learned, hours spent, and what's next.
+10. **Verify on the live URL (learned Nov 19):** Anything that depends on proxies, headers or the host must be verified on the live URL (https://tms556-sandbox.onrender.com) after deploying, because a local test is not proof. *Why:* the agent's first rate-limit fix used the last `X-Forwarded-For` address. It passed local tests, then failed on the live site because Render's proxy appends its own IP to that header.
 
 ## 4. Project Structure
 - `app/server.js`: **backend.** A small Node server on your laptop (localhost:3000). It serves `app/index.html`, reads `OPENROUTER_API_KEY` from `.env`, and calls OpenRouter (Claude Haiku 5.5) to draft a reply. It is the only code that sees the key.
@@ -43,3 +44,26 @@
 1. From the repo root: `node --env-file=.env app/server.js`
 2. Open http://localhost:3000
 3. Press Ctrl+C in the terminal to stop the server.
+
+## Shipping
+How a change goes live on Render:
+1. **Run it locally:** `node --env-file=.env app/server.js`, open http://localhost:3000, and test a real draft.
+2. **Hand off to the human:** tell them which files changed and propose a commit message. The human commits and pushes; the agent does not.
+3. **Deploy (human):** after pushing, the human clicks **Manual Deploy → Deploy latest commit** in Render. The service is connected as a public repo and does **not** auto-deploy, so a push alone changes nothing live.
+4. **Check the live site:** open https://tms556-sandbox.onrender.com and check that the change is there.
+5. **Rerun the live security test:**
+   - The key search returns 0: no `sk-`, `sk-or`, `service_role` or `sb_secret_` in the live site.
+   - 12 requests to `/api/draft` with faked headers (`X-Forwarded-For`, `True-Client-IP`) switch to **429 after 10**. Use invalid bodies so no OpenRouter credit is spent.
+6. **Report:** tell the human what is live and what was checked.
+
+**Render settings:**
+- Build command: `npm install`
+- Start command: `npm start`
+- `OPENROUTER_API_KEY` is set **only** in Render's dashboard (Environment), never in the repo.
+
+## Ask me first
+Do not do these without the human's explicit OK:
+- Deleting data or changing the database.
+- Keys, secrets and permissions, including `.env` and Render settings.
+- Anything that costs money.
+- Commits and pushes.

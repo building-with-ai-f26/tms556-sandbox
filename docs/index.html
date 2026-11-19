@@ -163,14 +163,15 @@
     <section id="live-demo">
       <h2>Product Showcase (Prototype / Live App / 2-Min Video)</h2>
       <p>
-        <strong>Current Status:</strong> Build 2: local working slice (AI drafts a reply in my style)<br />
+        <strong>Current Status:</strong> Build 3: live on Render (AI drafts a reply in my style)<br />
+        <strong>Live app:</strong> <a href="https://tms556-sandbox.onrender.com">https://tms556-sandbox.onrender.com</a><br />
         <strong>Demo:</strong> <a href="prototype/">Try the prototype</a>
       </p>
       <figure style="margin: 0 0 12px;">
         <img src="images/build2-working-slice.png"
              alt="Ghostwriter Build 2 working slice on localhost: a pasted text from Carly and 3 of my own texts, with a reply drafted in my style by Claude Haiku 5.5"
              style="display: block; width: 100%; max-width: 600px; height: auto; border: 1px solid var(--border); border-radius: 8px;" />
-        <figcaption class="meta">Build 2 working slice on localhost: paste a text from Carly plus 3 of my own texts, and Claude Haiku 5.5 (via OpenRouter) drafts a reply in my style. Made-up test texts. It needs a local backend, so it runs only on my laptop until Build 5.</figcaption>
+        <figcaption class="meta">Build 2 working slice on localhost: paste a text from Carly plus 3 of my own texts, and Claude Haiku 5.5 (via OpenRouter) drafts a reply in my style. Made-up test texts. This screenshot was taken on localhost. The same app is now live on Render.</figcaption>
       </figure>
       <figure style="margin: 0 0 12px;">
         <img src="images/prototype-build1.png"
@@ -216,7 +217,7 @@
 
       <h3>4. How It Works Under the Hood & Riskiest Assumption (Week 2+)</h3>
       <p><strong>Riskiest Assumption:</strong> Ghostwriter's drafts won't sound like me, so I'd rewrite or skip them and it wouldn't save time. How Build 2 tests it: I pasted 3 made-up texts from Carly, and the AI drafted replies using 3 of my own texts as style examples. Result: 1 I'd send as-is, 1 needed a small edit (a different emoji), 1 was good. An encouraging early signal, but a small sample judged by me. Next: real texts with Carly, and checking what Apple allows for reading and sending iMessages before building on it.</p>
-      <p><strong>Simple Architecture:</strong> Browser page (app/index.html) → local backend on localhost:3000 (app/server.js, which reads the OpenRouter key from .env) → OpenRouter (Claude Haiku 5.5) → draft shown on the page. The key never reaches the browser. PostHog runs in the page.</p>
+      <p><strong>Simple Architecture:</strong> Browser page (app/index.html) → backend on Render at <a href="https://tms556-sandbox.onrender.com">tms556-sandbox.onrender.com</a> (app/server.js, which reads the OpenRouter key from Render's environment settings) → OpenRouter (Claude Haiku 5.5) → draft shown on the page. The key never reaches the browser. PostHog runs in the page. For local development, the same server runs on localhost:3000 with <code>node --env-file=.env app/server.js</code> and reads the key from .env.</p>
 
       <h3>5. Unit Economics & Analytics Snapshot (Updated Weekly)</h3>
       <div class="grid-2">
@@ -231,15 +232,39 @@
           <div class="meta">e.g. 181 tokens in, 16 out; runs with hidden reasoning tokens cost more. Monthly at 20 drafts a day: about $0.05 (cost per run × runs per day × 30).</div>
         </div>
         <div class="stat-box">
-          <div class="stat-label">User Evidence (Analytics from Build 2)</div>
+          <div class="stat-label">User Evidence (Analytics from Build 3)</div>
           <div class="stat-value">Pageviews, clicks, replays</div>
-          <div class="meta">PostHog shows these on both the Product Page and the local app. No outside users yet.</div>
+          <div class="meta">PostHog runs on the Product Page and on the live app, verified on Nov 19. No outside users yet.</div>
         </div>
         <div class="stat-box">
           <div class="stat-label">Sponsor Call (Week 6)</div>
           <div class="stat-value">TBD</div>
         </div>
+        <div class="stat-box">
+          <div class="stat-label">Hosting Cost (Build 3)</div>
+          <div class="stat-value">$0</div>
+          <div class="meta">Render free web service.</div>
+        </div>
       </div>
+
+      <h3>6. Hosting, Data & Security (PRD v3, Build 3)</h3>
+      <p><strong>Live app:</strong> <a href="https://tms556-sandbox.onrender.com">https://tms556-sandbox.onrender.com</a></p>
+      <p><a class="btn" href="https://tms556-sandbox.onrender.com">Open the Live App →</a></p>
+      <ul>
+        <li><strong>Hosting:</strong> Render free web service (Node), live at <a href="https://tms556-sandbox.onrender.com">tms556-sandbox.onrender.com</a>. I chose Render because Ghostwriter is a Node server. Free instances sleep after 15 idle minutes, so the first visit after a quiet stretch is slow. The service is connected as a public repo, so I deploy manually.</li>
+        <li><strong>Database:</strong> None. Drafts are not saved anywhere, so there is no Supabase and no Row Level Security.</li>
+        <li><strong>Security:</strong>
+          <ul>
+            <li>The OpenRouter key lives only in Render's environment settings, with a $2 credit limit and auto top-up off.</li>
+            <li>A rate limit of 10 requests per minute per visitor, keyed on Cloudflare's True-Client-IP.</li>
+            <li>Other websites are blocked from calling the API.</li>
+            <li>Bad request bodies get a 400 instead of crashing the server.</li>
+            <li>Full audit: <a href="https://github.com/building-with-ai-f26/tms556-sandbox/blob/main/SECURITY.md">SECURITY.md</a> in the repo.</li>
+          </ul>
+        </li>
+        <li><strong>Analytics:</strong> PostHog and session replay verified on the live site on Nov 19. The pasted texts are hidden in replays, but the drafted reply is still visible. Masking it is planned.</li>
+        <li><strong>Hosting cost:</strong> $0.</li>
+      </ul>
     </section>
 
     <!-- WEEKLY BUILD LOG (Updated at least twice a week via Git commits) -->

@@ -73,7 +73,7 @@ Most serious first. The original findings 1 (the `null` crash) and 2 (the rate-l
 
 3. **Private texts may show up in PostHog session recordings (low, privacy).** Visitors paste real messages from friends. PostHog masks what is typed into input boxes by default, but not ordinary text on the page. That means the **drafted reply** shown in `#draft` (which often repeats details from the texts) is probably captured in recordings. The page does warn about session recordings. I have **not checked a recording** in the PostHog dashboard to confirm this.
 
-4. **The rate-limit memory can grow under a flood from many IPs (low).** Every IP adds an entry that stays for up to a minute. Locally, 20,000 fake IPs added about 30 MB. Since the `X-Forwarded-For` fix, a faked header should no longer create new entries on Render, but a flood from many real IPs still would. A large, fast flood could push a small Render instance toward its memory limit. Expired entries are cleaned up every minute, so memory recovers when the flood stops.
+4. **The rate-limit memory can grow under a flood from many IPs (low).** Every IP adds an entry that stays for up to a minute. Locally, 20,000 fake IPs added about 30 MB. Since the fix that keys the rate limit on Cloudflare's `True-Client-IP` / `CF-Connecting-IP` headers, faked headers should no longer create new entries on Render, but a flood from many real IPs still would. A large, fast flood could push a small Render instance toward its memory limit. Expired entries are cleaned up every minute, so memory recovers when the flood stops.
 
 5. **OpenRouter error text is passed to the browser (low).** On a failed call, the server sends `OpenRouter error <status>: <message>` back to the visitor. That can reveal details such as "credit limit reached". It does not reveal the key.
 
@@ -96,12 +96,16 @@ Fixed **after** this audit, in `app/server.js` (not yet committed or deployed):
    - **Retest (local, fake key):** `null`, `[]`, `"str"`, `1`, `true` and `[null]` each returned 400, and the server stayed up after every one. A normal request afterwards returned 200, and `GET /` returned 200.
 
 2. **The rate limit could be bypassed by faking `X-Forwarded-For` (was medium).** `visitorIp()` used the first address in `X-Forwarded-For`, and the client writes that part. Locally, a new fake address on every request got past the limit 100% of the time. Proxies like Render's normally add the real visitor IP to the end of the header, so the first entry would still be whatever the client sent. Impact: the 10/min limit stopped normal overuse but not a deliberate attacker.
-   - **Fix:** `visitorIp()` now uses the **last** address in `X-Forwarded-For`, the one Render's proxy adds. A client can only add addresses before it.
-   - **Retest (local, fake key):**
-     - `X-Forwarded-For: <new fake each time>, 203.0.113.50`, 12 requests: **10 × 200, then 2 × 429** (before the fix: 12 × 200).
-     - Several fake hops before the real address: also 10 × 200, then 429.
-     - **30-request loop from one IP:** 30 invalid bodies gave **10 × 400, then 20 × 429**, which matches the live result from before. 30 valid bodies gave 10 × 200, then 20 × 429.
-   - **Limit of this test:** locally there is no proxy, so a single faked header (`X-Forwarded-For: <fake>`) is still the last entry and still gets through (12 × 200). That's expected. The fix depends on Render always adding the real IP at the end of the header, and I have **not yet verified that on the live site** (see **What is left**).
+   - **First fix, failed live:** I changed `visitorIp()` to use the **last** address in `X-Forwarded-For`, assuming Render's proxy adds the real visitor IP at the end. It passed locally: with a fake address first and a fixed one last, 12 requests gave 10 × 200, then 429. On the live site, 12 requests with fake `X-Forwarded-For` addresses all got **400 and never 429**, so the bypass still worked.
+     - **Why it failed:** Render's proxy appends **its own** IP to `X-Forwarded-For` and keeps whatever the client sent. The last entry is a Render proxy address, not the visitor's. It also isn't a reliable rate-limit key, and the local test could not catch this because there is no proxy locally. Neither the first nor the last entry of `X-Forwarded-For` can be trusted on Render.
+   - **Fix that replaced it:** `visitorIp()` no longer reads `X-Forwarded-For` at all. Render sits behind Cloudflare, which sets `True-Client-IP` and `CF-Connecting-IP` to the real visitor IP, and clients can't fake those on Render. `visitorIp()` now uses `True-Client-IP`, then `CF-Connecting-IP`, then the socket address (which is what applies locally, where there is no Cloudflare).
+   - **Retest (local, fake key, OpenRouter never contacted):**
+     - New fake `X-Forwarded-For` each time with the same `True-Client-IP`, 12 requests: **10 × 200, then 2 × 429**. `X-Forwarded-For` is ignored.
+     - New fake `X-Forwarded-For` each time with the same `CF-Connecting-IP`: 10 × 200, then 429.
+     - Same `True-Client-IP` with a new `CF-Connecting-IP` each time: 10 × 200, then 429, so `True-Client-IP` takes priority.
+     - No Cloudflare headers, new fake `X-Forwarded-For` each time: 10 × 200, then 429 (keyed on the socket address).
+     - **30-request loop from one visitor:** 30 invalid bodies gave **10 × 400, then 20 × 429**.
+   - **Limit of this test:** locally there is no Cloudflare, so a client can set `True-Client-IP` itself, and a new fake value each time gets through (12 × 200). That's expected. On Render, Cloudflare sets these headers itself. The new fix has **not yet been verified on the live site**: repeat the live test of 12 requests with fake `X-Forwarded-For` (and fake `True-Client-IP`) and invalid bodies, and confirm 429 after 10.
 
 Unchanged by these fixes, retested: an evil `Origin` still gets 403, non-JSON gets 400, and 6 examples gets 400. Every allowed request in the retest went to a stub, and OpenRouter was never contacted.
 
@@ -116,9 +120,9 @@ In priority order:
 
 1. **Deploy and verify the two fixes live.** Commit and push, then on the live site:
    - send `-d 'null'` once and confirm a 400 and that the site stays up;
-   - send about 12 requests with a different fake `X-Forwarded-For` each time, using only invalid bodies so no credit is spent, and confirm 429 after 10.
+   - send about 12 requests with a different fake `X-Forwarded-For` and fake `True-Client-IP` each time, using only invalid bodies so no credit is spent, and confirm 429 after 10.
 
-   If the 429s don't appear, Render's header doesn't end with the visitor IP, and `visitorIp()` needs another look. Even with this working, a determined attacker with many IPs can still use up the $2, so keep the credit limit as the real cap.
+   If the 429s don't appear, Cloudflare isn't overwriting `True-Client-IP` / `CF-Connecting-IP` for requests reaching Render, and `visitorIp()` needs another look. Even with this working, a determined attacker with many IPs can still use up the $2, so keep the credit limit as the real cap.
 2. **Cap the size of the rate-limit map** (e.g. stop accepting new IPs, or clear it, past a fixed number of entries) to protect against floods from many IPs.
 3. **Keep visitors' texts out of PostHog recordings.** Add `class="ph-no-capture"` (or `maskAllText`) to the draft and inputs, or turn off session recording on the app page. Then open a recording to confirm.
 4. **Send a generic error to the browser** (e.g. "Couldn't draft a reply, try again") and keep the OpenRouter details in the server log only.

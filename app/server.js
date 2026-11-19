@@ -86,13 +86,14 @@ const RATE_LIMIT = 10;
 const RATE_WINDOW_MS = 60 * 1000;
 const hits = new Map(); // ip -> { start, count }
 
-// On Render the visitor IP is the LAST address in X-Forwarded-For: Render's
-// proxy appends it, while earlier entries can be faked by the client.
-// Locally there is no proxy, so use the socket address.
+// Render sits behind Cloudflare, which sets True-Client-IP and CF-Connecting-IP
+// to the real visitor IP (clients can't fake these on Render). X-Forwarded-For
+// is NOT used: Render keeps whatever the client sends in it.
+// Locally there is no Cloudflare, so fall back to the socket address.
 function visitorIp(req) {
-  const forwarded = req.headers["x-forwarded-for"];
-  if (typeof forwarded === "string" && forwarded.trim()) {
-    return forwarded.split(",").pop().trim();
+  for (const name of ["true-client-ip", "cf-connecting-ip"]) {
+    const value = req.headers[name];
+    if (typeof value === "string" && value.trim()) return value.trim();
   }
   return req.socket.remoteAddress || "unknown";
 }
